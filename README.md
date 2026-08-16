@@ -15,6 +15,13 @@ Curated bindings for the libvirt virtualization API. The package
 is split into a thin, 1:1 core layer over the libvirt C API and an idiomatic
 Nim wrapper layer that manages resources for you.
 
+> [!NOTE]
+> This library is a work in progress. Not all of the libvirt C API is bound
+> yet — coverage currently focuses on connections, domains, networks,
+> storage, streams and events. Missing areas include snapshots/checkpoints,
+> node devices, secrets, interfaces, nwfilter, migration and more. It is a
+> curated subset rather than a full 1:1 binding. Contributions welcome.
+
 ## Features
 
 - Curated bindings for libvirt (thin `bindings/` layer, styled
