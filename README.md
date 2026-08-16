@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://nimbase.github.io/libvirt-nim/">API reference</a><br>
-  <img src="https://github.com/nimbase/libvirt-nim/workflows/test.yml/badge.svg" alt="Github Actions">  <img src="https://github.com/nimbase/libvirt-nim/workflows/docs.yml/badge.svg" alt="Github Actions">
+  <img src="https://github.com/nimbase/libvirt-nim/workflows/test/badge.svg" alt="Github Actions">  <img src="https://github.com/nimbase/libvirt-nim/workflows/docs/badge.svg" alt="Github Actions">
 </p>
 
 Curated bindings for the libvirt virtualization API. The package
