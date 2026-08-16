@@ -9,6 +9,9 @@
 
 import ./libvirt/bindings/common
 import ./libvirt/bindings/[host, domain, network, storage, stream, event, virterror]
+import ./libvirt/domain_xml
+import ./libvirt/xmldsl
 import ./libvirt/api
 
-export common, host, domain, network, storage, stream, event, virterror, api
+export common, host, domain, network, storage, stream, event, virterror
+export domain_xml, xmldsl, api
