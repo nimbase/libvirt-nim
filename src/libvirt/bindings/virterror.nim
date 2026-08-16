@@ -1,0 +1,239 @@
+# Nim bindings for libvirt.
+# Error handling interfaces (virterror.h).
+#
+# (c) 2026 George Lemon | Nimbase Community MIT License
+
+import ./common
+
+type
+  virErrorLevel* = enum
+    VIR_ERR_NONE = 0
+    VIR_ERR_WARNING = 1
+    VIR_ERR_ERROR = 2
+
+  virErrorDomain* = enum
+    VIR_FROM_NONE = 0
+    VIR_FROM_XEN = 1
+    VIR_FROM_XEND = 2
+    VIR_FROM_XENSTORE = 3
+    VIR_FROM_SEXPR = 4
+    VIR_FROM_XML = 5
+    VIR_FROM_DOM = 6
+    VIR_FROM_RPC = 7
+    VIR_FROM_PROXY = 8
+    VIR_FROM_CONF = 9
+    VIR_FROM_QEMU = 10
+    VIR_FROM_NET = 11
+    VIR_FROM_TEST = 12
+    VIR_FROM_REMOTE = 13
+    VIR_FROM_OPENVZ = 14
+    VIR_FROM_XENXM = 15
+    VIR_FROM_STATS_LINUX = 16
+    VIR_FROM_LXC = 17
+    VIR_FROM_STORAGE = 18
+    VIR_FROM_NETWORK = 19
+    VIR_FROM_DOMAIN = 20
+    VIR_FROM_UML = 21
+    VIR_FROM_NODEDEV = 22
+    VIR_FROM_XEN_INOTIFY = 23
+    VIR_FROM_SECURITY = 24
+    VIR_FROM_VBOX = 25
+    VIR_FROM_INTERFACE = 26
+    VIR_FROM_ONE = 27
+    VIR_FROM_ESX = 28
+    VIR_FROM_PHYP = 29
+    VIR_FROM_SECRET = 30
+    VIR_FROM_CPU = 31
+    VIR_FROM_XENAPI = 32
+    VIR_FROM_NWFILTER = 33
+    VIR_FROM_HOOK = 34
+    VIR_FROM_DOMAIN_SNAPSHOT = 35
+    VIR_FROM_AUDIT = 36
+    VIR_FROM_SYSINFO = 37
+    VIR_FROM_STREAMS = 38
+    VIR_FROM_VMWARE = 39
+    VIR_FROM_EVENT = 40
+    VIR_FROM_LIBXL = 41
+    VIR_FROM_LOCKING = 42
+    VIR_FROM_HYPERV = 43
+    VIR_FROM_CAPABILITIES = 44
+    VIR_FROM_URI = 45
+    VIR_FROM_AUTH = 46
+    VIR_FROM_DBUS = 47
+    VIR_FROM_PARALLELS = 48
+    VIR_FROM_DEVICE = 49
+    VIR_FROM_SSH = 50
+    VIR_FROM_LOCKSPACE = 51
+    VIR_FROM_INITCTL = 52
+    VIR_FROM_IDENTITY = 53
+    VIR_FROM_CGROUP = 54
+    VIR_FROM_ACCESS = 55
+    VIR_FROM_SYSTEMD = 56
+    VIR_FROM_BHYVE = 57
+    VIR_FROM_CRYPTO = 58
+    VIR_FROM_FIREWALL = 59
+    VIR_FROM_POLKIT = 60
+    VIR_FROM_THREAD = 61
+    VIR_FROM_ADMIN = 62
+    VIR_FROM_LOGGING = 63
+    VIR_FROM_XENXL = 64
+    VIR_FROM_PERF = 65
+    VIR_FROM_LIBSSH = 66
+    VIR_FROM_RESCTRL = 67
+    VIR_FROM_FIREWALLD = 68
+    VIR_FROM_DOMAIN_CHECKPOINT = 69
+    VIR_FROM_TPM = 70
+    VIR_FROM_BPF = 71
+    VIR_FROM_CH = 72
+
+  virErrorNumber* = enum
+    VIR_ERR_OK = 0
+    VIR_ERR_INTERNAL_ERROR = 1
+    VIR_ERR_NO_MEMORY = 2
+    VIR_ERR_NO_SUPPORT = 3
+    VIR_ERR_UNKNOWN_HOST = 4
+    VIR_ERR_NO_CONNECT = 5
+    VIR_ERR_INVALID_CONN = 6
+    VIR_ERR_INVALID_DOMAIN = 7
+    VIR_ERR_INVALID_ARG = 8
+    VIR_ERR_OPERATION_FAILED = 9
+    VIR_ERR_GET_FAILED = 10
+    VIR_ERR_POST_FAILED = 11
+    VIR_ERR_HTTP_ERROR = 12
+    VIR_ERR_SEXPR_SERIAL = 13
+    VIR_ERR_NO_XEN = 14
+    VIR_ERR_XEN_CALL = 15
+    VIR_ERR_OS_TYPE = 16
+    VIR_ERR_NO_KERNEL = 17
+    VIR_ERR_NO_ROOT = 18
+    VIR_ERR_NO_SOURCE = 19
+    VIR_ERR_NO_TARGET = 20
+    VIR_ERR_NO_NAME = 21
+    VIR_ERR_NO_OS = 22
+    VIR_ERR_NO_DEVICE = 23
+    VIR_ERR_NO_XENSTORE = 24
+    VIR_ERR_DRIVER_FULL = 25
+    VIR_ERR_CALL_FAILED = 26
+    VIR_ERR_XML_ERROR = 27
+    VIR_ERR_DOM_EXIST = 28
+    VIR_ERR_OPERATION_DENIED = 29
+    VIR_ERR_OPEN_FAILED = 30
+    VIR_ERR_READ_FAILED = 31
+    VIR_ERR_PARSE_FAILED = 32
+    VIR_ERR_CONF_SYNTAX = 33
+    VIR_ERR_WRITE_FAILED = 34
+    VIR_ERR_XML_DETAIL = 35
+    VIR_ERR_INVALID_NETWORK = 36
+    VIR_ERR_NETWORK_EXIST = 37
+    VIR_ERR_SYSTEM_ERROR = 38
+    VIR_ERR_RPC = 39
+    VIR_ERR_GNUTLS_ERROR = 40
+    VIR_WAR_NO_NETWORK = 41
+    VIR_ERR_NO_DOMAIN = 42
+    VIR_ERR_NO_NETWORK = 43
+    VIR_ERR_INVALID_MAC = 44
+    VIR_ERR_AUTH_FAILED = 45
+    VIR_ERR_INVALID_STORAGE_POOL = 46
+    VIR_ERR_INVALID_STORAGE_VOL = 47
+    VIR_WAR_NO_STORAGE = 48
+    VIR_ERR_NO_STORAGE_POOL = 49
+    VIR_ERR_NO_STORAGE_VOL = 50
+    VIR_WAR_NO_NODE = 51
+    VIR_ERR_INVALID_NODE_DEVICE = 52
+    VIR_ERR_NO_NODE_DEVICE = 53
+    VIR_ERR_NO_SECURITY_MODEL = 54
+    VIR_ERR_OPERATION_INVALID = 55
+    VIR_WAR_NO_INTERFACE = 56
+    VIR_ERR_NO_INTERFACE = 57
+    VIR_ERR_INVALID_INTERFACE = 58
+    VIR_ERR_MULTIPLE_INTERFACES = 59
+    VIR_WAR_NO_NWFILTER = 60
+    VIR_ERR_INVALID_NWFILTER = 61
+    VIR_ERR_NO_NWFILTER = 62
+    VIR_ERR_BUILD_FIREWALL = 63
+    VIR_WAR_NO_SECRET = 64
+    VIR_ERR_INVALID_SECRET = 65
+    VIR_ERR_NO_SECRET = 66
+    VIR_ERR_CONFIG_UNSUPPORTED = 67
+    VIR_ERR_OPERATION_TIMEOUT = 68
+    VIR_ERR_MIGRATE_PERSIST_FAILED = 69
+    VIR_ERR_HOOK_SCRIPT_FAILED = 70
+    VIR_ERR_INVALID_DOMAIN_SNAPSHOT = 71
+    VIR_ERR_NO_DOMAIN_SNAPSHOT = 72
+    VIR_ERR_INVALID_STREAM = 73
+    VIR_ERR_ARGUMENT_UNSUPPORTED = 74
+    VIR_ERR_STORAGE_PROBE_FAILED = 75
+    VIR_ERR_STORAGE_POOL_BUILT = 76
+    VIR_ERR_SNAPSHOT_REVERT_RISKY = 77
+    VIR_ERR_OPERATION_ABORTED = 78
+    VIR_ERR_AUTH_CANCELLED = 79
+    VIR_ERR_NO_DOMAIN_METADATA = 80
+    VIR_ERR_MIGRATE_UNSAFE = 81
+    VIR_ERR_OVERFLOW = 82
+    VIR_ERR_BLOCK_COPY_ACTIVE = 83
+    VIR_ERR_OPERATION_UNSUPPORTED = 84
+    VIR_ERR_SSH = 85
+    VIR_ERR_AGENT_UNRESPONSIVE = 86
+    VIR_ERR_RESOURCE_BUSY = 87
+    VIR_ERR_ACCESS_DENIED = 88
+    VIR_ERR_DBUS_SERVICE = 89
+    VIR_ERR_STORAGE_VOL_EXIST = 90
+    VIR_ERR_CPU_INCOMPATIBLE = 91
+    VIR_ERR_XML_INVALID_SCHEMA = 92
+    VIR_ERR_MIGRATE_FINISH_OK = 93
+    VIR_ERR_AUTH_UNAVAILABLE = 94
+    VIR_ERR_NO_SERVER = 95
+    VIR_ERR_NO_CLIENT = 96
+    VIR_ERR_AGENT_UNSYNCED = 97
+    VIR_ERR_LIBSSH = 98
+    VIR_ERR_DEVICE_MISSING = 99
+    VIR_ERR_INVALID_NWFILTER_BINDING = 100
+    VIR_ERR_NO_NWFILTER_BINDING = 101
+    VIR_ERR_INVALID_DOMAIN_CHECKPOINT = 102
+    VIR_ERR_NO_DOMAIN_CHECKPOINT = 103
+    VIR_ERR_NO_DOMAIN_BACKUP = 104
+    VIR_ERR_INVALID_NETWORK_PORT = 105
+    VIR_ERR_NETWORK_PORT_EXIST = 106
+    VIR_ERR_NO_NETWORK_PORT = 107
+    VIR_ERR_NO_HOSTNAME = 108
+    VIR_ERR_CHECKPOINT_INCONSISTENT = 109
+    VIR_ERR_MULTIPLE_DOMAINS = 110
+    VIR_ERR_NO_NETWORK_METADATA = 111
+    VIR_ERR_AGENT_COMMAND_TIMEOUT = 112
+    VIR_ERR_AGENT_COMMAND_FAILED = 113
+
+  virError* {.importc: "struct _virError", header: "<libvirt/virterror.h>".} = object
+    code*: cint
+    domain*: cint
+    message*: cstring
+    level*: virErrorLevel
+    conn*: virConnectPtr
+    dom*: virDomainPtr
+    str1*: cstring
+    str2*: cstring
+    str3*: cstring
+    int1*: cint
+    int2*: cint
+    net*: virNetworkPtr
+
+  virErrorPtr* = ptr virError
+
+  virErrorFunc* = proc(userData: pointer, error: virErrorPtr) {.cdecl.}
+
+{.push, importc, header: "<libvirt/virterror.h>", dynlib: "libvirt." & ext.}
+proc virGetLastError*(): virErrorPtr
+proc virSaveLastError*(): virErrorPtr
+proc virResetLastError*()
+proc virResetError*(err: virErrorPtr)
+proc virFreeError*(err: virErrorPtr)
+proc virGetLastErrorCode*(): cint
+proc virGetLastErrorDomain*(): cint
+proc virGetLastErrorMessage*(): cstring
+proc virConnGetLastError*(conn: virConnectPtr): virErrorPtr
+proc virConnResetLastError*(conn: virConnectPtr)
+proc virCopyLastError*(to: virErrorPtr): cint
+proc virDefaultErrorFunc*(err: virErrorPtr)
+proc virSetErrorFunc*(userData: pointer, handler: virErrorFunc)
+proc virConnSetErrorFunc*(conn: virConnectPtr, userData: pointer, handler: virErrorFunc)
+proc virConnCopyLastError*(conn: virConnectPtr, to: virErrorPtr): cint
+{.pop.}
