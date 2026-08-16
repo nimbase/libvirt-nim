@@ -5,7 +5,8 @@
 # (c) 2026 George Lemon | Nimbase Community MIT License
 #          https://github.com/openpeeps/libvirt-nim
 
-{.passL:"-L/opt/local/lib -lvirt", passC:"-I /opt/local/include".}
+{.passL: gorge("pkg-config --libs libvirt").}
+{.passC: gorge("pkg-config --cflags libvirt").}
 
 import ./libvirt/bindings/common
 import ./libvirt/bindings/[host, domain, network, storage, stream, event, virterror]
