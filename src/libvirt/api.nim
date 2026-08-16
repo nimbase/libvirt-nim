@@ -3,9 +3,9 @@
 #
 # (c) 2026 George Lemon | Nimbase Community MIT License
 
-import std/[tables, strutils]
+import std/tables
 import ./bindings/common
-import ./bindings/[host, domain, network, storage, stream, event, virterror]
+import ./bindings/[host, domain, network, storage, stream, virterror]
 
 type
   LibvirtError* = object of CatchableError
@@ -142,7 +142,7 @@ proc id*(self: Domain): cuint =
 
 proc uuidString*(self: Domain): string =
   var buf: array[37, char]
-  check virDomainGetUUIDString(self.Handle, addr buf[0])
+  check virDomainGetUUIDString(self.Handle, cast[cstring](addr buf[0]))
   $cast[cstring](addr buf[0])
 
 proc info*(self: Domain): virDomainInfo =
