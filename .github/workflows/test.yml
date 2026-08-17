@@ -5,15 +5,17 @@ jobs:
     uses: nimbase/setup-nim-action/.github/workflows/test.yml@main
     with:
       nim-version: stable
+      os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-15-intel"}]'
       pre-install-command: |
         if [ "$RUNNER_OS" = "Linux" ]; then
           sudo apt-get update
-          sudo apt-get install -y libvirt-dev qemu-system-x86
+          sudo apt-get install -y libvirt-dev qemu-system-x86 pkg-config
         elif [ "$RUNNER_OS" = "macOS" ]; then
-          brew install libvirt qemu
+          brew install libvirt qemu pkg-config
           brew services start libvirt
         elif [ "$RUNNER_OS" = "Windows" ]; then
           echo "Installing libvirt + qemu via MSYS2..."
           C:/msys64/usr/bin/pacman.exe -S --noconfirm mingw-w64-x86_64-libvirt mingw-w64-x86_64-qemu
           echo "C:/msys64/mingw64/bin" >> "$GITHUB_PATH"
+          echo "C:/msys64/usr/bin" >> "$GITHUB_PATH"
         fi
