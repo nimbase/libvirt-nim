@@ -134,6 +134,10 @@ type
     VIR_DOMAIN_EVENT_ID_MEMORY_DEVICE_SIZE_CHANGE = 26
     VIR_DOMAIN_EVENT_ID_NIC_MAC_CHANGE = 27
 
+  virDomainConsoleFlags* = enum
+    VIR_DOMAIN_CONSOLE_FORCE = 1
+    VIR_DOMAIN_CONSOLE_SAFE = 2
+
   virConnectDomainEventGenericCallback* = proc(conn: virConnectPtr, dom: virDomainPtr, opaque: pointer) {.cdecl.}
   virConnectDomainEventCallback* = proc(conn: virConnectPtr, dom: virDomainPtr, event: cint, detail: cint, opaque: pointer): cint {.cdecl.}
 
@@ -174,6 +178,8 @@ proc virDomainGetMaxMemory*(domain: virDomainPtr): culong
 proc virDomainGetOSType*(domain: virDomainPtr): cstring
 
 proc virConnectListAllDomains*(conn: virConnectPtr, domains: ptr virDomainPtr, flags: cuint): cint
+
+proc virDomainOpenConsole*(domain: virDomainPtr, devname: cstring, st: virStreamPtr, flags: cuint): cint
 
 proc virConnectDomainEventRegisterAny*(conn: virConnectPtr, dom: virDomainPtr, eventID: cint, cb: virConnectDomainEventGenericCallback, opaque: pointer, freecb: virFreeCallback): cint
 proc virConnectDomainEventDeregisterAny*(conn: virConnectPtr, callbackID: cint): cint

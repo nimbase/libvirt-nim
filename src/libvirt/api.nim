@@ -427,6 +427,17 @@ proc recv*(self: Stream, size = 4096'u): string =
   if n < 0: raise lastError()
   buf[0 ..< n]
 
+proc tryRecv*(self: Stream, size = 4096'u): string =
+  ## Non-blocking recv. Returns empty string when no data is available.
+  var buf = newString(size)
+  let n = virStreamRecv(self.Handle, cast[cstring](addr buf[0]), size)
+  if n < 0:
+    let err = virGetLastError()
+    if err != nil and err.code == 11: # EAGAIN / EWOULDBLOCK
+      return ""
+    raise lastError()
+  buf[0 ..< n]
+
 proc finish*(self: Stream): cint =
   let n = virStreamFinish(self.Handle)
   if n < 0: raise lastError()
@@ -436,6 +447,9 @@ proc abort*(self: Stream): cint =
   let n = virStreamAbort(self.Handle)
   if n < 0: raise lastError()
   n
+
+proc openConsole*(self: Domain, stream: Stream, devname: string = "", flags: cuint = 0) =
+  check virDomainOpenConsole(self.Handle, devname.cstring, stream.Handle, flags)
 
 # ------------------------------------------------------------------
 # Events

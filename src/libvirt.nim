@@ -5,8 +5,16 @@
 # (c) 2026 George Lemon | Nimbase Community MIT License
 #          https://github.com/openpeeps/libvirt-nim
 
-{.passL: gorge("pkg-config --libs libvirt").}
-{.passC: gorge("pkg-config --cflags libvirt").}
+when defined(windows):
+  when fileExists("C:/msys64/mingw64/lib/libvirt.dll.a"):
+    {.passL: "-LC:/msys64/mingw64/lib -lvirt".}
+    {.passC: "-IC:/msys64/mingw64/include".}
+  else:
+    {.passL: "-lvirt".}
+    {.passC: "".}
+else:
+  {.passL: gorge("pkg-config --libs libvirt").}
+  {.passC: gorge("pkg-config --cflags libvirt").}
 
 import ./libvirt/bindings/common
 import ./libvirt/bindings/[host, domain, network, storage, stream, event, virterror]
