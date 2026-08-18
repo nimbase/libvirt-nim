@@ -65,11 +65,18 @@ proc textOf(e: NimNode): NimNode =
   ## or a literal "" if the element has none.
   for i in 1 ..< e.len:
     let child = e[i]
-    if child.kind == nnkStmtList and child.len == 1 and
-       child[0].kind in {nnkStrLit, nnkRStrLit, nnkTripleStrLit, nnkIntLit..nnkUInt64Lit}:
-      if child[0].kind in {nnkStrLit, nnkRStrLit, nnkTripleStrLit}:
-        return child[0]
-      return newCall(ident"$", child[0])
+    if child.kind == nnkStmtList and child.len == 1:
+      let inner = child[0]
+      case inner.kind
+      of nnkStrLit, nnkRStrLit, nnkTripleStrLit:
+        return inner
+      of nnkIntLit..nnkUInt64Lit:
+        return newCall(ident"$", inner)
+      of nnkIdent, nnkDotExpr, nnkCall, nnkInfix, nnkPrefix, nnkPar:
+        # Support runtime variables and expressions
+        return newCall(ident"$", inner)
+      else:
+        discard
   newLit("")
 
 proc valOr(node: NimNode, fallback: string): NimNode =
@@ -202,6 +209,24 @@ proc renderGraphics(g: LibvirtGraphics): string =
   buf.add "/>"
   buf
 
+proc renderChannel(c: LibvirtChannel): string =
+  var buf = newStringOfCap(256)
+  buf.add "<channel"
+  buf.addAttr("type", c.channelType)
+  buf.add ">"
+  if c.sourceMode.len > 0 or c.sourcePath.len > 0:
+    buf.add "<source"
+    buf.addAttr("mode", c.sourceMode)
+    buf.addAttr("path", c.sourcePath)
+    buf.add "/>"
+  if c.targetType.len > 0 or c.targetName.len > 0:
+    buf.add "<target"
+    buf.addAttr("type", c.targetType)
+    buf.addAttr("name", c.targetName)
+    buf.add "/>"
+  buf.add "</channel>"
+  buf
+
 proc renderOs(os: LibvirtOS): string =
   if os.osType.len == 0 and os.boot.len == 0 and os.loader.len == 0 and
      os.nvram.len == 0 and os.kernel.len == 0 and os.initrd.len == 0 and
@@ -322,14 +347,23 @@ proc xml*(self: LibvirtDomain): string =
   let evtStr = renderEvents(self.events)
   if evtStr.len > 0: buf.add evtStr
   if self.disks.len > 0 or self.interfaces.len > 0 or self.serials.len > 0 or
-     self.consoles.len > 0 or self.graphics.len > 0:
+     self.consoles.len > 0 or self.graphics.len > 0 or self.channels.len > 0 or
+     self.emulator.len > 0:
     buf.add "<devices>"
+    if self.emulator.len > 0:
+      buf.add "<emulator>" & escapeXml(self.emulator) & "</emulator>"
     for d in self.disks: buf.add renderDisk(d)
     for i in self.interfaces: buf.add renderInterface(i)
     for s in self.serials: buf.add renderSerial(s)
     for c in self.consoles: buf.add renderConsole(c)
     for g in self.graphics: buf.add renderGraphics(g)
+    for ch in self.channels: buf.add renderChannel(ch)
     buf.add "</devices>"
+  if self.qemuArgs.len > 0:
+    buf.add "<qemu:commandline xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>"
+    for a in self.qemuArgs:
+      buf.add "<qemu:arg value='" & escapeXml(a) & "'/>"
+    buf.add "</qemu:commandline>"
   buf.add "</domain>"
   buf
 
@@ -410,6 +444,18 @@ proc emitFeatures(result, d: NimNode, e: NimNode) =
       result.add featureAssign(fVar, name, sub)
   result.add newAssignment(newDotExpr(d, ident"features"), fVar)
 
+proc emitQemuCommandline(result, d: NimNode, e: NimNode) =
+  ## Builds `d.qemuArgs` from a `qemu_commandline` block of
+  ## `qemu_arg value="..."` elements.
+  for sub in childStmts(e):
+    let name = elemName(sub)
+    if name != "qemu_arg":
+      error("unsupported <qemu_commandline> element: '" & name & "'", sub)
+    let attrs = attrsOf(sub)
+    result.add newCall(
+      newDotExpr(newDotExpr(d, ident"qemuArgs"), ident"add"),
+      attrOr(attrs, "value", ""))
+
 proc deviceKind(name: string): string =
   ## Returns the domain field that holds the given device element.
   case name
@@ -418,6 +464,7 @@ proc deviceKind(name: string): string =
   of "serial": "serials"
   of "console": "consoles"
   of "graphics": "graphics"
+  of "channel": "channels"
   else: ""
 
 proc buildDevice(sub: NimNode): NimNode =
@@ -488,11 +535,23 @@ proc buildDevice(sub: NimNode): NimNode =
       newColonExpr(ident"sourcePath", newLit("")),
       newColonExpr(ident"sourceType", attrOr(attrs, "type", "")))
   of "console":
+    var targetType, targetPort, sourcePath: NimNode
+    for child in childStmts(sub):
+      let cname = elemName(child)
+      let ca = attrsOf(child)
+      case cname
+      of "source":
+        sourcePath = attrOr(ca, "path", "")
+      of "target":
+        targetType = attrOr(ca, "type", "serial")
+        targetPort = attrOr(ca, "port", "0")
+      else:
+        error("unsupported <console> element: '" & cname & "'", child)
     objConstr("LibvirtConsole",
-      newColonExpr(ident"targetType", attrOr(attrs, "type", "serial")),
-      newColonExpr(ident"targetPort", attrOr(attrs, "port", "0")),
-      newColonExpr(ident"sourcePath", newLit("")),
-      newColonExpr(ident"sourceType", newLit("")))
+      newColonExpr(ident"targetType", targetType.valOr("serial")),
+      newColonExpr(ident"targetPort", targetPort.valOr("0")),
+      newColonExpr(ident"sourcePath", sourcePath.valOr("")),
+      newColonExpr(ident"sourceType", attrOr(attrs, "type", "")))
   of "graphics":
     objConstr("LibvirtGraphics",
       newColonExpr(ident"graphicsType", attrOr(attrs, "type", "")),
@@ -500,15 +559,39 @@ proc buildDevice(sub: NimNode): NimNode =
       newColonExpr(ident"listen", attrOr(attrs, "listen", "")),
       newColonExpr(ident"autoport", attrOr(attrs, "autoport", "")),
       newColonExpr(ident"passwd", attrOr(attrs, "passwd", "")))
+  of "channel":
+    var sourceMode, sourcePath, targetType, targetName: NimNode
+    for child in childStmts(sub):
+      let cname = elemName(child)
+      let ca = attrsOf(child)
+      case cname
+      of "source":
+        sourceMode = attrOr(ca, "mode", "")
+        sourcePath = attrOr(ca, "path", "")
+      of "target":
+        targetType = attrOr(ca, "type", "")
+        targetName = attrOr(ca, "name", "")
+      else:
+        error("unsupported <channel> element: '" & cname & "'", child)
+    objConstr("LibvirtChannel",
+      newColonExpr(ident"channelType", attrOr(attrs, "type", "")),
+      newColonExpr(ident"sourceMode", sourceMode.valOr("")),
+      newColonExpr(ident"sourcePath", sourcePath.valOr("")),
+      newColonExpr(ident"targetType", targetType.valOr("")),
+      newColonExpr(ident"targetName", targetName.valOr("")))
   else:
     error("unsupported device element: '" & name & "'", sub)
 
 proc emitDevices(result, d: NimNode, e: NimNode) =
   ## Builds `d.disks`, `d.interfaces`, ... from the `<devices>` container.
   for sub in childStmts(e):
-    let kind = deviceKind(elemName(sub))
+    let name = elemName(sub)
+    if name == "emulator":
+      result.add newAssignment(newDotExpr(d, ident"emulator"), textOf(sub))
+      continue
+    let kind = deviceKind(name)
     if kind.len == 0:
-      error("unsupported device element: '" & elemName(sub) & "'", sub)
+      error("unsupported device element: '" & name & "'", sub)
     result.add newCall(
       newDotExpr(newDotExpr(d, ident(kind)), ident"add"),
       buildDevice(sub))
@@ -569,6 +652,8 @@ proc emitElement(result, d: NimNode, e: NimNode) =
       enumConv("LibvirtOnAction", textOf(e)))
   of "devices":
     emitDevices(result, d, e)
+  of "qemu_commandline":
+    emitQemuCommandline(result, d, e)
   else:
     error("unsupported domain element: '" & name & "'", e)
 

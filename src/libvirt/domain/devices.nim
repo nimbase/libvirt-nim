@@ -40,3 +40,10 @@ type
     listen*: string
     autoport*: string
     passwd*: string
+
+  LibvirtChannel* = object
+    channelType*: string         # unix | ...
+    sourceMode*: string          # bind | connect
+    sourcePath*: string
+    targetType*: string          # virtio
+    targetName*: string          # org.qemu.guest_agent.0

@@ -24,8 +24,11 @@ type
     features*: LibvirtFeatures
     clock*: LibvirtClock
     events*: LibvirtEvents
+    emulator*: string
     disks*: seq[LibvirtDisk]
     interfaces*: seq[LibvirtInterface]
     serials*: seq[LibvirtSerial]
     consoles*: seq[LibvirtConsole]
     graphics*: seq[LibvirtGraphics]
+    channels*: seq[LibvirtChannel]
+    qemuArgs*: seq[string]

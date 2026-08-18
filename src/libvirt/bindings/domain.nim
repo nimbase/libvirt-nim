@@ -184,5 +184,10 @@ proc virDomainOpenConsole*(domain: virDomainPtr, devname: cstring, st: virStream
 proc virConnectDomainEventRegisterAny*(conn: virConnectPtr, dom: virDomainPtr, eventID: cint, cb: virConnectDomainEventGenericCallback, opaque: pointer, freecb: virFreeCallback): cint
 proc virConnectDomainEventDeregisterAny*(conn: virConnectPtr, callbackID: cint): cint
 proc virConnectDomainEventRegister*(conn: virConnectPtr, cb: virConnectDomainEventCallback, opaque: pointer, freecb: virFreeCallback): cint
-proc virConnectDomainEventDeregister*(conn: virConnectPtr, cb: virConnectDomainEventCallback): cint
+proc virConnectDomainEventDeregister*(conn: virConnectPtr, callbackID: cint): cint
+{.pop.}
+
+# QEMU Guest Agent commands (from libvirt-qemu.h)
+{.push, importc, header: "<libvirt/libvirt-qemu.h>", dynlib: "libvirt." & ext.}
+proc virDomainQemuAgentCommand*(domain: virDomainPtr, cmd: cstring, timeout: cint, flags: cuint): cstring
 {.pop.}

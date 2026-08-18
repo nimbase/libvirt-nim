@@ -190,6 +190,31 @@ proc suspend*(self: Domain) =
 proc resume*(self: Domain) =
   check virDomainResume(self.Handle)
 
+const
+  VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK* = -2
+  VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT* = -1
+  VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT* = 0
+  VIR_DOMAIN_QEMU_AGENT_COMMAND_SHUTDOWN* = 60
+
+proc qemuAgentCommand*(self: Domain, cmd: string, timeout: int = VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT): string =
+  ## Execute a QEMU Guest Agent command.
+  ## Requires the guest agent channel (org.qemu.guest_agent.0) in domain XML.
+  ## Raises LibvirtError on failure.
+  let res = virDomainQemuAgentCommand(self.Handle, cmd.cstring, timeout.cint, 0'u32)
+  if res == nil:
+    raise lastError()
+  result = $res
+  free(res)
+
+proc guestSync*(self: Domain, timeout: int = 5): bool =
+  ## Check if the QEMU Guest Agent is responsive.
+  ## Sends `guest-sync` and returns true if the agent replies.
+  try:
+    let res = self.qemuAgentCommand("guest-sync", timeout)
+    result = res.len > 0
+  except LibvirtError:
+    result = false
+
 proc create*(self: Domain) =
   check virDomainCreate(self.Handle)
 
