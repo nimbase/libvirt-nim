@@ -300,6 +300,46 @@ proc destroy*(self: Network) =
 proc undefine*(self: Network) =
   check virNetworkUndefine(self.Handle)
 
+proc getBridgeName*(self: Network): string =
+  ## Get the kernel bridge device name (e.g. "virbr0").
+  let b = virNetworkGetBridgeName(self.Handle)
+  if b == nil: raise lastError()
+  result = $b
+  free(b)
+
+type
+  DhcpLease* = object
+    iface*: string
+    expiryTime*: int64
+    mac*: string
+    ipaddr*: string
+    prefix*: int
+    hostname*: string
+
+proc getDHCPLeases*(self: Network, mac: string = ""): seq[DhcpLease] =
+  ## Fetch active DHCP leases from a libvirt network.
+  ## Pass `mac` to filter to a single client, or "" for all leases.
+  var leasesPtr: virNetworkDHCPLeasePtr = nil
+  let macArg = if mac.len > 0: mac.cstring else: nil
+  let n = virNetworkGetDHCPLeases(self.Handle, macArg, addr leasesPtr, 0)
+  if n < 0: raise lastError()
+  if n == 0 or leasesPtr == nil:
+    return
+  # leasesPtr points to an array of virNetworkDHCPLeasePtr
+  let arr = cast[ptr UncheckedArray[virNetworkDHCPLeasePtr]](leasesPtr)
+  for i in 0 ..< n:
+    let lease = cast[ptr virNetworkDHCPLeaseObj](arr[i])[]
+    result.add DhcpLease(
+      iface: if lease.iface != nil: $lease.iface else: "",
+      expiryTime: lease.expiryTime,
+      mac: if lease.mac != nil: $lease.mac else: "",
+      ipaddr: if lease.ipaddr != nil: $lease.ipaddr else: "",
+      prefix: int(lease.prefix),
+      hostname: if lease.hostname != nil: $lease.hostname else: ""
+    )
+    discard virNetworkDHCPLeaseFree(arr[i])
+  free(cast[pointer](leasesPtr))
+
 # ------------------------------------------------------------------
 # Storage
 # ------------------------------------------------------------------

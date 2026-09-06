@@ -20,3 +20,10 @@ type
   LibvirtMemoryBacking* = object
     sourceType*: string      # "memfd" | "file"
     accessMode*: string      # "shared" | "private"
+
+  LibvirtSeclabel* = object
+    seclabelType*: string        # dynamic | static | none
+    model*: string               # dac | selinux | apparmor
+    relabel*: string             # yes | no
+    label*: string               # e.g. +1000:+1000
+    imagelabel*: string          # e.g. +1000:+1000

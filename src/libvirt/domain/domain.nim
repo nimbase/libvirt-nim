@@ -17,6 +17,7 @@ type
     metadata*: LibvirtMetadata
     memory*: LibvirtMemory
     currentMemory*: LibvirtMemory
+    memoryBacking*: LibvirtMemoryBacking
     vcpu*: LibvirtVcpu
     iothreads*: LibvirtIothreads
     os*: LibvirtOS
@@ -24,7 +25,7 @@ type
     features*: LibvirtFeatures
     clock*: LibvirtClock
     events*: LibvirtEvents
-    memoryBacking*: LibvirtMemoryBacking
+    seclabel*: LibvirtSeclabel
     emulator*: string
     disks*: seq[LibvirtDisk]
     interfaces*: seq[LibvirtInterface]

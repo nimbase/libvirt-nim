@@ -231,6 +231,24 @@ proc renderEvents(e: LibvirtEvents): string =
     buf.add "<on_crash>" & $e.onCrash & "</on_crash>"
   buf
 
+proc renderSeclabel(s: LibvirtSeclabel): string =
+  if s.seclabelType.len == 0 and s.model.len == 0:
+    return ""
+  var buf = newStringOfCap(128)
+  buf.add "<seclabel"
+  buf.addAttr("type", s.seclabelType)
+  buf.addAttr("model", s.model)
+  buf.addAttr("relabel", s.relabel)
+  buf.add ">"
+  if s.label.len > 0:
+    buf.add "<label>" & escapeXml(s.label) & "</label>"
+  if s.baselabel.len > 0:
+    buf.add "<baselabel>" & escapeXml(s.baselabel) & "</baselabel>"
+  if s.imagelabel.len > 0:
+    buf.add "<imagelabel>" & escapeXml(s.imagelabel) & "</imagelabel>"
+  buf.add "</seclabel>"
+  buf
+
 # ------------------------------------------------------------------
 # Public API
 # ------------------------------------------------------------------
@@ -286,6 +304,8 @@ proc toXML*(self: LibvirtDomain): string =
   if evtStr.len > 0: buf.add evtStr
   let mbStr = renderMemoryBacking(self.memoryBacking)
   if mbStr.len > 0: buf.add mbStr
+  let seclabelStr = renderSeclabel(self.seclabel)
+  if seclabelStr.len > 0: buf.add seclabelStr
   if self.disks.len > 0 or self.interfaces.len > 0 or self.serials.len > 0 or
      self.consoles.len > 0 or self.graphics.len > 0 or self.channels.len > 0 or
      self.filesystems.len > 0 or self.emulator.len > 0:
