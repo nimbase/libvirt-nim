@@ -1,7 +1,7 @@
-# Tests for the libvirt Domain XML DSL.
+# Tests for libvirt Domain XML rendering.
 #
-# Verifies that the DSL macro builds a typed LibvirtDomain object and
-# that the XML renderer produces valid libvirt XML.
+# Verifies that typed LibvirtDomain objects render to valid libvirt XML
+# via `toXML`.
 #
 # (c) 2026 George Lemon | Nimbase Community MIT License
 
@@ -12,95 +12,92 @@ import ../src/libvirt
 # Basic object construction
 # ------------------------------------------------------------------
 
-suite "xmldsl — object fields":
+suite "toXML — object fields":
   test "domain type and id":
-    let d = domain(`type`="kvm", id="1")
+    let d = LibvirtDomain(virtType: "kvm", id: "1")
     check d.virtType == "kvm"
     check d.id == "1"
 
   test "metadata fields":
-    let d = domain(`type`="kvm"):
-      name: "MyGuest"
-      uuid: "4dea22b3-1234-5678-9abc-def012345678"
-      title: "Test VM"
-      description: "A test virtual machine"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      metadata: LibvirtMetadata(
+        name: "MyGuest",
+        uuid: "4dea22b3-1234-5678-9abc-def012345678",
+        title: "Test VM",
+        description: "A test virtual machine"
+      )
+    )
     check d.metadata.name == "MyGuest"
     check d.metadata.uuid == "4dea22b3-1234-5678-9abc-def012345678"
     check d.metadata.title == "Test VM"
     check d.metadata.description == "A test virtual machine"
 
   test "memory and currentMemory":
-    let d = domain(`type`="kvm"):
-      memory unit="KiB": "1048576"
-      currentMemory unit="KiB": "524288"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      memory: LibvirtMemory(value: "1048576", unit: "KiB"),
+      currentMemory: LibvirtMemory(value: "524288", unit: "KiB")
+    )
     check d.memory.value == "1048576"
     check d.memory.unit == "KiB"
     check d.currentMemory.value == "524288"
     check d.currentMemory.unit == "KiB"
 
   test "vcpu":
-    let d = domain(`type`="kvm"):
-      vcpu placement="static", cpuset="0-3", current="2": "4"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      vcpu: LibvirtVcpu(value: "4", placement: "static", cpuset: "0-3", current: "2")
+    )
     check d.vcpu.value == "4"
     check d.vcpu.placement == "static"
     check d.vcpu.cpuset == "0-3"
     check d.vcpu.current == "2"
 
   test "os section":
-    let d = domain(`type`="kvm"):
-      os:
-        `type` arch="x86_64", machine="pc": "hvm"
-        boot dev="hd"
-        boot dev="cdrom"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      os: LibvirtOS(
+        osType: "hvm", arch: "x86_64", machine: "pc",
+        boot: @[bdHardDisk, bdCdrom]
+      )
+    )
     check d.os.osType == "hvm"
     check d.os.arch == "x86_64"
     check d.os.machine == "pc"
     check d.os.boot.len == 2
 
   test "clock and events":
-    let d = domain(`type`="kvm"):
-      clock offset="utc"
-      on_poweroff: "destroy"
-      on_reboot: "restart"
-      on_crash: "destroy"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      clock: LibvirtClock(offset: "utc"),
+      events: LibvirtEvents(
+        onPoweroff: oaDestroy, onReboot: oaRestart, onCrash: oaDestroy
+      )
+    )
     check d.clock.offset == "utc"
     check d.events.onPoweroff == oaDestroy
     check d.events.onReboot == oaRestart
 
-  test "features — block form":
-    let d = domain(`type`="kvm"):
-      features:
-        acpi
-        apic
+  test "features":
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      features: LibvirtFeatures(acpi: true, apic: true)
+    )
     check d.features.acpi == true
     check d.features.apic == true
     check d.features.pae == false
 
-  test "features — bracket idents":
-    let d = domain(`type`="kvm"):
-      features: [acpi, apic]
-    check d.features.acpi == true
-    check d.features.apic == true
-
-  test "features — bracket strings comma":
-    let d = domain(`type`="kvm"):
-      features: ["acpi", "apic"]
-    check d.features.acpi == true
-    check d.features.apic == true
-
-  test "features — bracket strings space":
-    let d = domain(`type`="kvm"):
-      features: ["acpi" "apic"]
-    check d.features.acpi == true
-    check d.features.apic == true
-
   test "single disk":
-    let d = domain(`type`="kvm"):
-      devices:
-        disk `type`="file", device="disk":
-          driver name="qemu", `type`="qcow2"
-          source file="/var/lib/libvirt/images/guest.qcow2"
-          target dev="vda", bus="virtio"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      disks: @[LibvirtDisk(
+        diskType: "file", device: "disk",
+        driverName: "qemu", driverType: "qcow2",
+        sourceFile: "/var/lib/libvirt/images/guest.qcow2",
+        targetDev: "vda", targetBus: "virtio"
+      )]
+    )
     check d.disks.len == 1
     check d.disks[0].diskType == "file"
     check d.disks[0].device == "disk"
@@ -111,49 +108,82 @@ suite "xmldsl — object fields":
     check d.disks[0].targetBus == "virtio"
 
   test "interface":
-    let d = domain(`type`="kvm"):
-      devices:
-        `interface` `type`="network":
-          source network="default"
-          mac address="52:54:00:12:34:56"
-          model `type`="virtio"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      interfaces: @[LibvirtInterface(
+        ifaceType: "network",
+        sourceNetwork: "default",
+        mac: "52:54:00:12:34:56",
+        model: "virtio"
+      )]
+    )
     check d.interfaces.len == 1
     check d.interfaces[0].ifaceType == "network"
     check d.interfaces[0].sourceNetwork == "default"
     check d.interfaces[0].mac == "52:54:00:12:34:56"
     check d.interfaces[0].model == "virtio"
 
+  test "cpu model":
+    let d = LibvirtDomain(
+      virtType: "qemu",
+      cpu: LibvirtCpu(model: "cortex-a57")
+    )
+    check d.cpu.model == "cortex-a57"
+
+  test "memory backing and filesystems":
+    let d = LibvirtDomain(
+      virtType: "qemu",
+      memoryBacking: LibvirtMemoryBacking(sourceType: "memfd", accessMode: "shared"),
+      filesystems: @[LibvirtFilesystem(
+        fsType: "mount", accessmode: "passthrough",
+        driverType: "virtiofs", driverQueue: "1024",
+        sourceDir: "/host/code", targetDir: "code"
+      )]
+    )
+    check d.memoryBacking.sourceType == "memfd"
+    check d.filesystems.len == 1
+    check d.filesystems[0].targetDir == "code"
+
 # ------------------------------------------------------------------
 # XML rendering
 # ------------------------------------------------------------------
 
-suite "xmldsl — XML rendering":
+suite "toXML — XML rendering":
   test "minimal domain":
-    let d = domain(`type`="kvm"):
-      name: "test"
-    check d.xml == "<domain type=\"kvm\"><name>test</name></domain>"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      metadata: LibvirtMetadata(name: "test")
+    )
+    check toXML(d) == "<domain type=\"kvm\"><name>test</name></domain>"
 
   test "full domain XML matches expected":
-    let d = domain(`type`="kvm", id="1"):
-      name: "MyGuest"
-      uuid: "4dea22b3-1234-5678-9abc-def012345678"
-      memory unit="KiB": "1048576"
-      vcpu placement="static": "2"
-      os:
-        `type` arch="x86_64", machine="pc": "hvm"
-        boot dev="hd"
-      features:
-        acpi
-        apic
-      devices:
-        disk `type`="file", device="disk":
-          driver name="qemu", `type`="qcow2"
-          source file="/var/lib/libvirt/images/guest.qcow2"
-          target dev="vda", bus="virtio"
-        `interface` `type`="network":
-          source network="default"
-          mac address="52:54:00:12:34:56"
-          model `type`="virtio"
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      id: "1",
+      metadata: LibvirtMetadata(
+        name: "MyGuest",
+        uuid: "4dea22b3-1234-5678-9abc-def012345678"
+      ),
+      memory: LibvirtMemory(value: "1048576", unit: "KiB"),
+      vcpu: LibvirtVcpu(value: "2", placement: "static"),
+      os: LibvirtOS(
+        osType: "hvm", arch: "x86_64", machine: "pc",
+        boot: @[bdHardDisk]
+      ),
+      features: LibvirtFeatures(acpi: true, apic: true),
+      disks: @[LibvirtDisk(
+        diskType: "file", device: "disk",
+        driverName: "qemu", driverType: "qcow2",
+        sourceFile: "/var/lib/libvirt/images/guest.qcow2",
+        targetDev: "vda", targetBus: "virtio"
+      )],
+      interfaces: @[LibvirtInterface(
+        ifaceType: "network",
+        sourceNetwork: "default",
+        mac: "52:54:00:12:34:56",
+        model: "virtio"
+      )]
+    )
     let expected = "<domain type=\"kvm\" id=\"1\">" &
       "<name>MyGuest</name>" &
       "<uuid>4dea22b3-1234-5678-9abc-def012345678</uuid>" &
@@ -174,27 +204,75 @@ suite "xmldsl — XML rendering":
         "</interface>" &
       "</devices>" &
       "</domain>"
-    check d.xml == expected
+    check toXML(d) == expected
+
+  test "aarch64 guest with UEFI loader, cpu and qemu args":
+    let d = LibvirtDomain(
+      virtType: "qemu",
+      metadata: LibvirtMetadata(name: "arm"),
+      memory: LibvirtMemory(value: "2097152", unit: "KiB"),
+      vcpu: LibvirtVcpu(value: "2", placement: "static"),
+      os: LibvirtOS(
+        osType: "hvm", arch: "aarch64", machine: "virt",
+        loader: "/opt/local/share/qemu/edk2-aarch64-code.fd",
+        boot: @[bdHardDisk]
+      ),
+      cpu: LibvirtCpu(model: "cortex-a57"),
+      emulator: "/opt/local/bin/qemu-system-aarch64",
+      qemuArgs: @["-netdev", "user,id=hostnet0"]
+    )
+    let xml = toXML(d)
+    check xml.contains("<type arch=\"aarch64\" machine=\"virt\">hvm</type>")
+    check xml.contains("<loader>/opt/local/share/qemu/edk2-aarch64-code.fd</loader>")
+    check xml.contains("<cpu><model>cortex-a57</model></cpu>")
+    check xml.contains("<emulator>/opt/local/bin/qemu-system-aarch64</emulator>")
+    check xml.contains("<qemu:arg value='-netdev'/>")
+
+  test "memory backing and filesystem render":
+    let d = LibvirtDomain(
+      virtType: "qemu",
+      metadata: LibvirtMetadata(name: "shared"),
+      memoryBacking: LibvirtMemoryBacking(sourceType: "memfd", accessMode: "shared"),
+      filesystems: @[LibvirtFilesystem(
+        fsType: "mount", accessmode: "passthrough",
+        driverType: "virtiofs", driverQueue: "1024",
+        sourceDir: "/host/code", targetDir: "code"
+      )]
+    )
+    let xml = toXML(d)
+    check xml.contains("<memoryBacking><source type=\"memfd\"/><access mode=\"shared\"/></memoryBacking>")
+    check xml.contains("<filesystem type=\"mount\" accessmode=\"passthrough\">")
+    check xml.contains("<driver type=\"virtiofs\" queue=\"1024\"/>")
+    check xml.contains("<source dir=\"/host/code\"/>")
+    check xml.contains("<target dir=\"code\"/>")
 
   test "escaping in text content":
-    let d = domain(`type`="qemu"):
-      name: "a&b"
-    check d.xml.contains("&amp;")
+    let d = LibvirtDomain(
+      virtType: "qemu",
+      metadata: LibvirtMetadata(name: "a&b")
+    )
+    check toXML(d).contains("&amp;")
 
   test "$ operator":
-    let d = domain(`type`="qemu"):
-      name: "x"
-    check $d == d.xml
+    let d = LibvirtDomain(
+      virtType: "qemu",
+      metadata: LibvirtMetadata(name: "x")
+    )
+    check $d == toXML(d)
 
   test "non-default on_poweroff is emitted":
-    let d = domain(`type`="kvm"):
-      name: "test"
-      on_poweroff: "preserve"
-    check d.xml.contains("<on_poweroff>preserve</on_poweroff>")
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      metadata: LibvirtMetadata(name: "test"),
+      events: LibvirtEvents(onPoweroff: oaPreserve)
+    )
+    check toXML(d).contains("<on_poweroff>preserve</on_poweroff>")
 
   test "default events are omitted":
-    let d = domain(`type`="kvm"):
-      name: "test"
-    check "<on_poweroff>" notin d.xml
-    check "<on_reboot>" notin d.xml
-    check "<on_crash>" notin d.xml
+    let d = LibvirtDomain(
+      virtType: "kvm",
+      metadata: LibvirtMetadata(name: "test")
+    )
+    check "<on_poweroff>" notin toXML(d)
+    check "<on_reboot>" notin toXML(d)
+    check "<on_crash>" notin toXML(d)

@@ -47,3 +47,12 @@ type
     sourcePath*: string
     targetType*: string          # virtio
     targetName*: string          # org.qemu.guest_agent.0
+
+  LibvirtFilesystem* = object
+    fsType*: string              # mount | bind
+    accessmode*: string          # passthrough | mapped
+    driverType*: string          # virtiofs
+    driverQueue*: string         # e.g. "1024"
+    sourceDir*: string
+    sourceSocket*: string
+    targetDir*: string           # mount tag

@@ -16,3 +16,7 @@ type
 
   LibvirtIothreads* = object
     value*: string
+
+  LibvirtMemoryBacking* = object
+    sourceType*: string      # "memfd" | "file"
+    accessMode*: string      # "shared" | "private"
