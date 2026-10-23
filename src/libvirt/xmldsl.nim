@@ -47,10 +47,14 @@ proc renderDisk(d: LibvirtDisk): string =
   buf.addAttr("type", d.diskType)
   buf.addAttr("device", d.device)
   buf.add ">"
-  if d.driverName.len > 0 or d.driverType.len > 0:
+  if d.driverName.len > 0 or d.driverType.len > 0 or d.driverCache.len > 0 or
+      d.driverIo.len > 0 or d.driverDiscard.len > 0:
     buf.add "<driver"
     buf.addAttr("name", d.driverName)
     buf.addAttr("type", d.driverType)
+    buf.addAttr("cache", d.driverCache)
+    buf.addAttr("io", d.driverIo)
+    buf.addAttr("discard", d.driverDiscard)
     buf.add "/>"
   if d.sourceFile.len > 0 or d.sourceDev.len > 0:
     buf.add "<source"
@@ -174,7 +178,7 @@ proc renderFilesystem(fs: LibvirtFilesystem): string =
 proc renderOs(os: LibvirtOS): string =
   if os.osType.len == 0 and os.boot.len == 0 and os.loader.len == 0 and
      os.nvram.len == 0 and os.kernel.len == 0 and os.initrd.len == 0 and
-     os.cmdline.len == 0:
+     os.cmdline.len == 0 and os.init.len == 0 and os.initarg.len == 0:
     return ""
   var buf = newStringOfCap(256)
   buf.add "<os>"
@@ -195,30 +199,50 @@ proc renderOs(os: LibvirtOS): string =
     buf.add "<initrd>" & escapeXml(os.initrd) & "</initrd>"
   if os.cmdline.len > 0:
     buf.add "<cmdline>" & escapeXml(os.cmdline) & "</cmdline>"
+  if os.init.len > 0:
+    buf.add "<init>" & escapeXml(os.init) & "</init>"
+  for a in os.initarg:
+    buf.add "<initarg>" & escapeXml(a) & "</initarg>"
   buf.add "</os>"
   buf
 
 proc renderFeatures(f: LibvirtFeatures): string =
-  if not (f.acpi or f.apic or f.pae or f.pvspinlock.len > 0):
+  if not (f.acpi or f.apic or f.pae or f.pvspinlock.len > 0 or f.kvmHidden or f.vmport.len > 0):
     return ""
   var buf = newStringOfCap(128)
   buf.add "<features>"
   if f.acpi: buf.add "<acpi/>"
   if f.apic: buf.add "<apic/>"
   if f.pae: buf.add "<pae/>"
+  if f.kvmHidden:
+    buf.add "<kvm><hidden state='on'/></kvm>"
+  if f.vmport.len > 0:
+    buf.add "<vmport state=\"" & escapeXml(f.vmport) & "\"/>"
   if f.pvspinlock.len > 0:
     buf.add "<pvspinlock state=\"" & escapeXml(f.pvspinlock) & "\"/>"
   buf.add "</features>"
   buf
 
 proc renderClock(c: LibvirtClock): string =
-  if c.offset.len == 0 and c.timezone.len == 0:
+  if c.offset.len == 0 and c.timezone.len == 0 and c.kvmclockPresent.len == 0 and c.hpetPresent.len == 0:
     return ""
-  var buf = newStringOfCap(64)
+  var buf = newStringOfCap(128)
   buf.add "<clock"
   buf.addAttr("offset", c.offset)
   buf.addAttr("timezone", c.timezone)
-  buf.add "/>"
+  if c.kvmclockPresent.len == 0 and c.hpetPresent.len == 0 and c.rtcTickPolicy.len == 0 and c.pitTickPolicy.len == 0:
+    buf.add "/>"
+  else:
+    buf.add ">"
+    if c.kvmclockPresent.len > 0:
+      buf.add "<timer name='kvmclock' present='" & escapeXml(c.kvmclockPresent) & "'/>"
+    if c.hpetPresent.len > 0:
+      buf.add "<timer name='hpet' present='" & escapeXml(c.hpetPresent) & "'/>"
+    if c.rtcTickPolicy.len > 0:
+      buf.add "<timer name='rtc' tickpolicy='" & escapeXml(c.rtcTickPolicy) & "'/>"
+    if c.pitTickPolicy.len > 0:
+      buf.add "<timer name='pit' tickpolicy='" & escapeXml(c.pitTickPolicy) & "'/>"
+    buf.add "</clock>"
   buf
 
 proc renderEvents(e: LibvirtEvents): string =
@@ -286,15 +310,21 @@ proc toXML*(self: LibvirtDomain): string =
     buf.add "<iothreads>" & escapeXml(self.iothreads.value) & "</iothreads>"
   let osStr = renderOs(self.os)
   if osStr.len > 0: buf.add osStr
-  if self.cpu.model.len > 0:
-    buf.add "<cpu>"
-    buf.add "<model>" & escapeXml(self.cpu.model) & "</model>"
+  if self.cpu.model.len > 0 or self.cpu.mode.len > 0:
+    buf.add "<cpu"
+    buf.addAttr("mode", self.cpu.mode)
+    buf.addAttr("check", self.cpu.check)
+    buf.add ">"
+    if self.cpu.model.len > 0:
+      buf.add "<model>" & escapeXml(self.cpu.model) & "</model>"
     if self.cpu.topologySockets.len > 0:
       buf.add "<topology"
       buf.addAttr("sockets", self.cpu.topologySockets)
       buf.addAttr("cores", self.cpu.topologyCores)
       buf.addAttr("threads", self.cpu.topologyThreads)
       buf.add "/>"
+    for fp in self.cpu.featurePolicy:
+      buf.add "<feature policy='" & escapeXml(fp.policy) & "' name='" & escapeXml(fp.name) & "'/>"
     buf.add "</cpu>"
   let featStr = renderFeatures(self.features)
   if featStr.len > 0: buf.add featStr

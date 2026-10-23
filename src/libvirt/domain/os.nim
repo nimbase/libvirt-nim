@@ -21,3 +21,5 @@ type
     kernel*: string
     initrd*: string
     cmdline*: string
+    init*: string               # LXC: <init>/sbin/init</init>
+    initarg*: seq[string]       # LXC: <initarg>...</initarg>

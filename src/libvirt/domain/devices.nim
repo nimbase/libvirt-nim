@@ -9,6 +9,9 @@ type
     device*: string              # disk | cdrom | floppy | lun
     driverName*: string
     driverType*: string
+    driverCache*: string         # none | writeback | writethrough
+    driverIo*: string            # native | threads
+    driverDiscard*: string       # unmap | ignore
     sourceFile*: string
     sourceDev*: string
     targetDev*: string

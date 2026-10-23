@@ -20,10 +20,10 @@ type
     VIR_CONNECT_LIST_NETWORKS_AUTOSTART = 16
     VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART = 32
 
-  virNetworkDHCPLeaseObj* = object
+  virNetworkDHCPLease* {.importc: "virNetworkDHCPLease", header: "<libvirt/libvirt.h>", bycopy.} = object
     iface*: cstring
-    expiryTime*: clonglong
-    leaseType*: cint
+    expirytime*: clonglong
+    `type`*: cint
     mac*: cstring
     iaid*: cstring
     ipaddr*: cstring
@@ -31,7 +31,7 @@ type
     hostname*: cstring
     clientid*: cstring
 
-  virNetworkDHCPLeasePtr* = ptr virNetworkDHCPLeaseObj
+  virNetworkDHCPLeasePtr* = ptr virNetworkDHCPLease
 
 {.push, importc, header: "<libvirt/libvirt.h>", dynlib: "libvirt." & ext.}
 proc virNetworkRef*(network: virNetworkPtr): cint
@@ -59,7 +59,7 @@ proc virNetworkIsPersistent*(net: virNetworkPtr): cint
 proc virConnectListAllNetworks*(conn: virConnectPtr, nets: ptr virNetworkPtr, flags: cuint): cint
 
 proc virNetworkGetDHCPLeases*(network: virNetworkPtr, mac: cstring,
-                              leases: ptr virNetworkDHCPLeasePtr,
+                              leases: ptr ptr virNetworkDHCPLeasePtr,
                               flags: cuint): cint
-proc virNetworkDHCPLeaseFree*(lease: virNetworkDHCPLeasePtr): cint
+proc virNetworkDHCPLeaseFree*(lease: virNetworkDHCPLeasePtr)
 {.pop.}

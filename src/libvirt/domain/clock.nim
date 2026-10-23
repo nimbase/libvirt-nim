@@ -7,6 +7,10 @@ type
   LibvirtClock* = object
     offset*: string              # utc | localtime | timezone | variable
     timezone*: string
+    kvmclockPresent*: string     # yes | no (timer name='kvmclock')
+    hpetPresent*: string         # yes | no
+    rtcTickPolicy*: string       # catchup | delay
+    pitTickPolicy*: string       # catchup | delay
 
   LibvirtOnAction* = enum
     oaDestroy = "destroy"

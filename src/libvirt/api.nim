@@ -319,7 +319,7 @@ type
 proc getDHCPLeases*(self: Network, mac: string = ""): seq[DhcpLease] =
   ## Fetch active DHCP leases from a libvirt network.
   ## Pass `mac` to filter to a single client, or "" for all leases.
-  var leasesPtr: virNetworkDHCPLeasePtr = nil
+  var leasesPtr: ptr virNetworkDHCPLeasePtr = nil
   let macArg = if mac.len > 0: mac.cstring else: nil
   let n = virNetworkGetDHCPLeases(self.Handle, macArg, addr leasesPtr, 0)
   if n < 0: raise lastError()
@@ -328,16 +328,16 @@ proc getDHCPLeases*(self: Network, mac: string = ""): seq[DhcpLease] =
   # leasesPtr points to an array of virNetworkDHCPLeasePtr
   let arr = cast[ptr UncheckedArray[virNetworkDHCPLeasePtr]](leasesPtr)
   for i in 0 ..< n:
-    let lease = cast[ptr virNetworkDHCPLeaseObj](arr[i])[]
+    let lease = arr[i][]
     result.add DhcpLease(
       iface: if lease.iface != nil: $lease.iface else: "",
-      expiryTime: lease.expiryTime,
+      expiryTime: lease.expirytime,
       mac: if lease.mac != nil: $lease.mac else: "",
       ipaddr: if lease.ipaddr != nil: $lease.ipaddr else: "",
       prefix: int(lease.prefix),
       hostname: if lease.hostname != nil: $lease.hostname else: ""
     )
-    discard virNetworkDHCPLeaseFree(arr[i])
+    virNetworkDHCPLeaseFree(arr[i])
   free(cast[pointer](leasesPtr))
 
 # ------------------------------------------------------------------

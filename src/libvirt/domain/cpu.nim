@@ -5,6 +5,8 @@
 
 type
   LibvirtCpu* = object
+    mode*: string                # host-passthrough | host-model | custom
+    check*: string               # none | full | partial
     model*: string
     vendor*: string
     topologySockets*, topologyCores*, topologyThreads*: string
@@ -15,3 +17,5 @@ type
     apic*: bool
     pae*: bool
     pvspinlock*: string
+    kvmHidden*: bool
+    vmport*: string             # off | on

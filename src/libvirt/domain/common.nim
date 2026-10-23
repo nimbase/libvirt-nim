@@ -25,5 +25,6 @@ type
     seclabelType*: string        # dynamic | static | none
     model*: string               # dac | selinux | apparmor
     relabel*: string             # yes | no
-    label*: string               # e.g. +1000:+1000
+    label*: string               # e.g. +1000:+1000 or 1000:1000
+    baselabel*: string           # e.g. +1000:+1000 for dynamic
     imagelabel*: string          # e.g. +1000:+1000
